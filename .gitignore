@@ -1,0 +1,7 @@
+
+__pycache__/
+*.pyc
+final_crop_stress_dataset.csv
+CROP_STRESS.py
+.env
+.venv/
