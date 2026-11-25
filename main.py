@@ -166,3 +166,74 @@ def predict(data: dict):
             status_code=500,
             detail=str(e)
         )
+
+
+
+from fastapi import HTTPException
+import json
+
+
+@app.get("/api/history")
+def get_prediction_history():
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT
+                prediction_id,
+                village,
+                district,
+                state,
+                field_id,
+                crop,
+                growth_stage,
+                season,
+                crop_condition,
+                confidence_percent,
+                class_probabilities,
+                risk_score,
+                risk_level,
+                insurance_risk_score,
+                irrigation_priority,
+                recommendation,
+                created_at
+            FROM prediction_records
+            ORDER BY prediction_id DESC
+            LIMIT 100
+        """)
+
+        records = cursor.fetchall()
+
+        for record in records:
+            if isinstance(record.get("class_probabilities"), str):
+                try:
+                    record["class_probabilities"] = json.loads(
+                        record["class_probabilities"]
+                    )
+                except json.JSONDecodeError:
+                    record["class_probabilities"] = {}
+
+            if record.get("created_at"):
+                record["created_at"] = str(record["created_at"])
+
+        return {"records": records}
+
+    except Exception as error:
+        print("History error:", error)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Could not load prediction history."
+        )
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
